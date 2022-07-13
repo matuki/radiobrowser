@@ -1,0 +1,4 @@
+R_DEF: Internal format may change without notice
+local
+string single_menu_name
+xml automotive_app_desc

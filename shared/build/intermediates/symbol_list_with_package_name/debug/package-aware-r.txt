@@ -1,0 +1,3 @@
+br.com.matuki.radiobrowser.shared
+string single_menu_name
+xml automotive_app_desc
