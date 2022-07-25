@@ -9,15 +9,78 @@ import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.widget.ImageView
+import androidx.activity.compose.setContent
 import androidx.core.content.ContextCompat
 import br.com.matuki.radiobrowser.shared.RadioBrowserService
+import br.com.matuki.radiobrowser.view.RadioListViewModel
+import androidx.activity.viewModels
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import br.com.matuki.radiobrowser.view.PlayerScreenViewModel
+import br.com.matuki.radiobrowser.view.RadioListScreen
+import br.com.matuki.radiobrowser.view.PlayerScreen
+import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
 
+@AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
 
     private lateinit var mediaBrowser: MediaBrowserCompat
 
     private lateinit var playPauseButton: ImageView
+
+    private val radioListViewModel: RadioListViewModel by viewModels()
+
+    private val playerViewModel: PlayerScreenViewModel by viewModels()
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent {
+            val navController = rememberNavController()
+
+            NavHost(navController = navController, startDestination = "radioList") {
+                composable("radioList") {
+                    RadioListScreen(
+                        viewModel = radioListViewModel,
+                        navController = navController
+                    )
+                }
+                composable("player/{stationId}") { navBackStackEntry ->
+                    PlayerScreen(
+                        viewModel = playerViewModel,
+                        stationId =navBackStackEntry.arguments?.getString("stationId") ?: ""
+                    )
+                }
+            }
+        }
+
+        mediaBrowser = MediaBrowserCompat(
+            this,
+            ComponentName(this, RadioBrowserService::class.java),
+            connectionCallbacks,
+            null
+        )
+    }
+
+    override fun onStart() {
+        super.onStart()
+        mediaBrowser.connect()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        volumeControlStream = AudioManager.STREAM_MUSIC
+    }
+
+    override fun onStop() {
+        super.onStop()
+        MediaControllerCompat.getMediaController(this)?.unregisterCallback(controllerCallback)
+        mediaBrowser.disconnect()
+    }
 
     private val connectionCallbacks = object : MediaBrowserCompat.ConnectionCallback() {
         override fun onConnected() {
@@ -63,9 +126,9 @@ class MainActivity : AppCompatActivity() {
                     Timber.d("MainActivity setting button icon to play")
                     R.drawable.baseline_play_circle_outline_black_48
                 }
-            playPauseButton.setImageDrawable(
-                ContextCompat.getDrawable(this@MainActivity, playPauseDrawable)
-            )
+//            playPauseButton.setImageDrawable(
+//                ContextCompat.getDrawable(this@MainActivity, playPauseDrawable)
+//            )
         }
 
         override fun onSessionDestroyed() {
@@ -75,56 +138,28 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
-
-        mediaBrowser = MediaBrowserCompat(
-            this,
-            ComponentName(this, RadioBrowserService::class.java),
-            connectionCallbacks,
-            null
-        )
-    }
-
-    override fun onStart() {
-        super.onStart()
-        mediaBrowser.connect()
-    }
-
-    override fun onResume() {
-        super.onResume()
-        volumeControlStream = AudioManager.STREAM_MUSIC
-    }
-
-    override fun onStop() {
-        super.onStop()
-        MediaControllerCompat.getMediaController(this)?.unregisterCallback(controllerCallback)
-        mediaBrowser.disconnect()
-    }
-
     fun buildTransportControls() {
         val mediaController = MediaControllerCompat.getMediaController(this@MainActivity)
         // Grab the view for the play/pause button
-        playPauseButton = findViewById<ImageView>(R.id.play_pause).apply {
-            setOnClickListener {
-                // Since this is a play/pause button, you'll need to test the current state
-                // and choose the action accordingly
-
-                val pbState = mediaController.playbackState.state
-
-                Timber.d("MainActivity play clicked. Current state: $pbState")
-
-                if (pbState == PlaybackStateCompat.STATE_PLAYING) {
-                    mediaController.transportControls.pause()
-                } else {
-                    Timber.d("MainActivity start playing")
-//                    mediaController.transportControls.play()
-                    mediaController.transportControls.prepareFromMediaId("1", null)
-                    mediaController.transportControls.playFromMediaId("1", null)
-                }
-            }
-        }
+//        playPauseButton = findViewById<ImageView>(R.id.play_pause).apply {
+//            setOnClickListener {
+//                // Since this is a play/pause button, you'll need to test the current state
+//                // and choose the action accordingly
+//
+//                val pbState = mediaController.playbackState.state
+//
+//                Timber.d("MainActivity play clicked. Current state: $pbState")
+//
+//                if (pbState == PlaybackStateCompat.STATE_PLAYING) {
+//                    mediaController.transportControls.pause()
+//                } else {
+//                    Timber.d("MainActivity start playing")
+////                    mediaController.transportControls.play()
+//                    mediaController.transportControls.prepareFromMediaId("1", null)
+//                    mediaController.transportControls.playFromMediaId("1", null)
+//                }
+//            }
+//        }
 
         // Display the initial state
         val metadata = mediaController.metadata

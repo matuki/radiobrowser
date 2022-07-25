@@ -13,16 +13,15 @@ import androidx.media.utils.MediaConstants
 import androidx.media.utils.MediaConstants.DESCRIPTION_EXTRAS_KEY_CONTENT_STYLE_BROWSABLE
 import androidx.media.utils.MediaConstants.DESCRIPTION_EXTRAS_KEY_CONTENT_STYLE_PLAYABLE
 import androidx.media.utils.MediaConstants.DESCRIPTION_EXTRAS_VALUE_CONTENT_STYLE_GRID_ITEM
-import br.com.matuki.radiobrowser.shared.api.RadioRepositoryImpl
 import br.com.matuki.radiobrowser.shared.extension.from
 import br.com.matuki.radiobrowser.shared.model.MyPlaybackPreparer
-import br.com.matuki.radiobrowser.shared.model.RadioStation
 import br.com.matuki.radiobrowser.shared.model.toMediaItem
 import br.com.matuki.radiobrowser.shared.provider.AlbumArtContentProvider
 import com.google.android.exoplayer2.ExoPlayer
-import com.google.android.exoplayer2.Player
 import com.google.android.exoplayer2.ext.mediasession.MediaSessionConnector
+import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
+import javax.inject.Inject
 
 /**
  * This class provides a MediaBrowser through a service. It exposes the media library to a browsing
@@ -71,7 +70,9 @@ import timber.log.Timber
  * &lt;/automotiveApp&gt;
  *
  */
-class RadioBrowserService : MediaBrowserServiceCompat() {
+@AndroidEntryPoint
+class RadioBrowserService:
+    MediaBrowserServiceCompat() {
 
     private lateinit var mediaSession: MediaSessionCompat
 
@@ -83,8 +84,9 @@ class RadioBrowserService : MediaBrowserServiceCompat() {
 
     private val metadataBuilder = MediaMetadataCompat.Builder()
 
-    // TODO: Inject this instead
-    private val radioRepository: RadioRepository = RadioRepositoryImpl()
+    // TODO: Inject this on constructor instead?
+    @Inject
+    lateinit var radioRepository: RadioRepository
 
     private var rootMode: Int = -1
 

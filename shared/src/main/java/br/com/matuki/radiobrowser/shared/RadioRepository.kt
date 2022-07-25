@@ -4,4 +4,5 @@ import br.com.matuki.radiobrowser.shared.model.RadioStation
 
 interface RadioRepository {
     fun listRadioStations() : List<RadioStation>
+    fun getRadioStation(stationId: String): RadioStation
 }

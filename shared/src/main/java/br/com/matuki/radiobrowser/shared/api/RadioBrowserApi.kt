@@ -1,12 +1,13 @@
 package br.com.matuki.radiobrowser.shared.api
 
 import br.com.matuki.radiobrowser.shared.model.RadioStation
+import javax.inject.Inject
 
-class RadioBrowserApi {
+class RadioBrowserApi @Inject constructor() {
 
-    // "Fake" API for now
-    fun listRadioStations() : List<RadioStation> {
+    private lateinit var radioStations: List<RadioStation>
 
+    init {
         val cnbc = RadioStation(
             id = "0",
             name = "CNBC",
@@ -49,6 +50,11 @@ class RadioBrowserApi {
             iconUrl = "https://play-lh.googleusercontent.com/XqcEtsosmgfU3bh3gwgrrZ9_QZFE9DcFgFS6qaMYt-IWyQX0z1hiU_FRlQGXSmkA93CH=w240-h480"
         )
 
-        return listOf(cnbc, wprIdeasNetwork, wnycNewYork, bbcWorldService, kiisFmLA, wTopFm)
+        radioStations = listOf(cnbc, wprIdeasNetwork, wnycNewYork, bbcWorldService, kiisFmLA, wTopFm)
     }
+
+    // "Fake" API for now
+    fun listRadioStations() = radioStations
+
+    fun getRadioStation(stationId : String) = radioStations.first { it.id == stationId }
 }
