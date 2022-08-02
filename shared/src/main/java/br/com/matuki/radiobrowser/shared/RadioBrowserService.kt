@@ -13,6 +13,8 @@ import androidx.media.utils.MediaConstants
 import androidx.media.utils.MediaConstants.DESCRIPTION_EXTRAS_KEY_CONTENT_STYLE_BROWSABLE
 import androidx.media.utils.MediaConstants.DESCRIPTION_EXTRAS_KEY_CONTENT_STYLE_PLAYABLE
 import androidx.media.utils.MediaConstants.DESCRIPTION_EXTRAS_VALUE_CONTENT_STYLE_GRID_ITEM
+import br.com.matuki.radiobrowser.shared.api.RadioBrowserApi
+import br.com.matuki.radiobrowser.shared.api.RadioRepositoryImpl
 import br.com.matuki.radiobrowser.shared.extension.from
 import br.com.matuki.radiobrowser.shared.model.MyPlaybackPreparer
 import br.com.matuki.radiobrowser.shared.model.toMediaItem
@@ -70,7 +72,6 @@ import javax.inject.Inject
  * &lt;/automotiveApp&gt;
  *
  */
-@AndroidEntryPoint
 class RadioBrowserService:
     MediaBrowserServiceCompat() {
 
@@ -84,9 +85,8 @@ class RadioBrowserService:
 
     private val metadataBuilder = MediaMetadataCompat.Builder()
 
-    // TODO: Inject this on constructor instead?
-    @Inject
-    lateinit var radioRepository: RadioRepository
+    // TODO: Inject this instead
+    var radioRepository = RadioRepositoryImpl(RadioBrowserApi())
 
     private var rootMode: Int = -1
 
