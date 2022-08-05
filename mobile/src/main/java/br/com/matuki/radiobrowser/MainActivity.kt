@@ -2,27 +2,23 @@ package br.com.matuki.radiobrowser
 
 import android.content.ComponentName
 import android.media.AudioManager
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.support.v4.media.MediaBrowserCompat
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.PlaybackStateCompat
-import android.widget.ImageView
+import android.util.Log
 import androidx.activity.compose.setContent
-import androidx.core.content.ContextCompat
-import br.com.matuki.radiobrowser.shared.RadioBrowserService
-import br.com.matuki.radiobrowser.view.RadioListViewModel
 import androidx.activity.viewModels
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavType
+import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
+import br.com.matuki.radiobrowser.shared.RadioBrowserService
+import br.com.matuki.radiobrowser.view.PlayerScreen
 import br.com.matuki.radiobrowser.view.PlayerScreenViewModel
 import br.com.matuki.radiobrowser.view.RadioListScreen
-import br.com.matuki.radiobrowser.view.PlayerScreen
+import br.com.matuki.radiobrowser.view.RadioListViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
 
@@ -31,11 +27,42 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var mediaBrowser: MediaBrowserCompat
 
-    private lateinit var playPauseButton: ImageView
-
     private val radioListViewModel: RadioListViewModel by viewModels()
 
     private val playerViewModel: PlayerScreenViewModel by viewModels()
+
+    inner class MediaBridge : MediaControllerCompat.Callback() {
+
+        fun onPlayPauseClick(mediaId: String) {
+            val pbState = mediaController.playbackState?.state
+            if (pbState == PlaybackStateCompat.STATE_PLAYING) {
+                mediaController.transportControls.pause()
+            } else {
+                Log.d("MainActivity", "onPlayPauseClick starting playFromMediaId")
+                mediaController.transportControls.playFromMediaId(mediaId, null)
+            }
+        }
+
+        override fun onMetadataChanged(metadata: MediaMetadataCompat?) {}
+
+        override fun onPlaybackStateChanged(playbackState: PlaybackStateCompat?) {
+            Timber.d("MainActivity MediaBridge MediaControllerCompat.Callback playback state changed to $playbackState")
+            if (playbackState?.state == PlaybackStateCompat.STATE_PLAYING) {
+                playerViewModel.sendIntent(PlayerScreenViewModel.Intent.StreamPlayed)
+            } else {
+                playerViewModel.sendIntent(PlayerScreenViewModel.Intent.StreamPaused)
+            }
+
+        }
+
+        override fun onSessionDestroyed() {
+            mediaBrowser.disconnect()
+            // maybe schedule a reconnection using a new MediaBrowser instance
+        }
+
+    }
+
+    private var mediaBridge = MediaBridge()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,7 +79,8 @@ class MainActivity : AppCompatActivity() {
                 composable("player/{stationId}") { navBackStackEntry ->
                     PlayerScreen(
                         viewModel = playerViewModel,
-                        stationId =navBackStackEntry.arguments?.getString("stationId") ?: ""
+                        stationId = navBackStackEntry.arguments?.getString("stationId") ?: "",
+                        mediaBridge = mediaBridge
                     )
                 }
             }
@@ -78,12 +106,13 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStop() {
         super.onStop()
-        MediaControllerCompat.getMediaController(this)?.unregisterCallback(controllerCallback)
+        MediaControllerCompat.getMediaController(this)?.unregisterCallback(mediaBridge)
         mediaBrowser.disconnect()
     }
 
     private val connectionCallbacks = object : MediaBrowserCompat.ConnectionCallback() {
         override fun onConnected() {
+            Log.d("MainActivity", "ConnectionCallback onConnected")
 
             // Get the token for the MediaSession
             mediaBrowser.sessionToken.also { token ->
@@ -103,69 +132,24 @@ class MainActivity : AppCompatActivity() {
         }
 
         override fun onConnectionSuspended() {
+            Log.d("MainActivity", "ConnectionCallback onConnectionSuspended")
             // The Service has crashed. Disable transport controls until it automatically reconnects
         }
 
         override fun onConnectionFailed() {
+            Log.d("MainActivity", "ConnectionCallback onConnectionFailed")
             // The Service has refused our connection
         }
     }
 
-    private var controllerCallback = object : MediaControllerCompat.Callback() {
-
-        override fun onMetadataChanged(metadata: MediaMetadataCompat?) {}
-
-        override fun onPlaybackStateChanged(playbackState: PlaybackStateCompat?) {
-            Timber.d("MainActivity playback state changed to $playbackState")
-
-            val playPauseDrawable =
-                if (playbackState?.state == PlaybackStateCompat.STATE_PLAYING) {
-                    Timber.d("MainActivity setting button icon to pause")
-                    R.drawable.baseline_pause_circle_outline_black_48
-                } else {
-                    Timber.d("MainActivity setting button icon to play")
-                    R.drawable.baseline_play_circle_outline_black_48
-                }
-//            playPauseButton.setImageDrawable(
-//                ContextCompat.getDrawable(this@MainActivity, playPauseDrawable)
-//            )
-        }
-
-        override fun onSessionDestroyed() {
-            mediaBrowser.disconnect()
-            // maybe schedule a reconnection using a new MediaBrowser instance
-        }
-
-    }
-
     fun buildTransportControls() {
         val mediaController = MediaControllerCompat.getMediaController(this@MainActivity)
-        // Grab the view for the play/pause button
-//        playPauseButton = findViewById<ImageView>(R.id.play_pause).apply {
-//            setOnClickListener {
-//                // Since this is a play/pause button, you'll need to test the current state
-//                // and choose the action accordingly
-//
-//                val pbState = mediaController.playbackState.state
-//
-//                Timber.d("MainActivity play clicked. Current state: $pbState")
-//
-//                if (pbState == PlaybackStateCompat.STATE_PLAYING) {
-//                    mediaController.transportControls.pause()
-//                } else {
-//                    Timber.d("MainActivity start playing")
-////                    mediaController.transportControls.play()
-//                    mediaController.transportControls.prepareFromMediaId("1", null)
-//                    mediaController.transportControls.playFromMediaId("1", null)
-//                }
-//            }
-//        }
 
         // Display the initial state
         val metadata = mediaController.metadata
         val pbState = mediaController.playbackState
 
         // Register a Callback to stay in sync
-        mediaController.registerCallback(controllerCallback)
+        mediaController.registerCallback(mediaBridge)
     }
 }

@@ -24,6 +24,7 @@ class RadioListViewModel @Inject constructor(
 
     data class State(
         val loading: Boolean = false,
+        val playing: Boolean = false,
         val stationList: List<RadioStation> = emptyList(),
     )
 

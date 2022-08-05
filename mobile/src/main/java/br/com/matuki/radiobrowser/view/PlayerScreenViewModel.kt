@@ -7,6 +7,7 @@ import br.com.matuki.radiobrowser.shared.model.RadioStation
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 @HiltViewModel
@@ -33,13 +34,18 @@ class PlayerScreenViewModel @Inject constructor(
 
     sealed interface Intent {
         data class UpdateRadioStation(val stationId: String) : Intent
+        object StreamPlayed: Intent
+        object StreamPaused: Intent
     }
 
     override fun sendIntent(intent: Intent) = when (intent) {
         is Intent.UpdateRadioStation -> handleUpdateRadioStation(intent.stationId)
+        is Intent.StreamPlayed -> handleUpdatePlayState(true)
+        is Intent.StreamPaused -> handleUpdatePlayState(false)
     }
 
     private fun handleUpdateRadioStation(newStationId: String) {
+        Timber.d("PlayerScreenViewModel station id changed: $newStationId")
         viewModelScope.launch {
             reduce { copy(loading = true) }
             val radioStation = radioRepository.getRadioStation(newStationId)
@@ -47,7 +53,12 @@ class PlayerScreenViewModel @Inject constructor(
         }
     }
 
-    private fun reduce(reducer: PlayerScreenViewModel.State.() -> PlayerScreenViewModel.State) {
+    private fun handleUpdatePlayState(playing: Boolean) {
+        Timber.d("PlayerScreenViewModel play state changed: $playing")
+        reduce { copy(playing = playing) }
+    }
+
+    private fun reduce(reducer: State.() -> State) {
         _state.value = _state.value.reducer()
     }
 }

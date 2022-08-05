@@ -21,9 +21,7 @@ import br.com.matuki.radiobrowser.shared.model.toMediaItem
 import br.com.matuki.radiobrowser.shared.provider.AlbumArtContentProvider
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.ext.mediasession.MediaSessionConnector
-import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
-import javax.inject.Inject
 
 /**
  * This class provides a MediaBrowser through a service. It exposes the media library to a browsing
